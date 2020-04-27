@@ -31,7 +31,7 @@ The documentation will refer to `ao_killboard.py` further for simplicity.
 
 ### Configure and run
 Set up three parameters (guild, token and channel) either using environment variables or using command line arguments.
-* "guild" is your Albion Online guild identifier (as seen in https://albiononline.com/en/killboard/guild/**ID**)
+* "guild" is your Albion Online guild identifier (as seen in `https://albiononline.com/en/killboard/guild/<ID>`)
 * "token" is your bot token obtained in the previous step
 * "channel" is the Discord channel ID the bot will post messages into (check [this article](https://support.discordapp.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-) if you need to know how to obtain it)
 
