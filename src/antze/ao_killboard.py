@@ -334,7 +334,7 @@ def assert_not_none(value, name):
 
 # launch
 
-if __name__ == "__main__":
+def _entrypoint_main():
 
     # aiohttp fix for Windows
     # https://github.com/aio-libs/aiohttp/issues/4324
@@ -369,6 +369,9 @@ if __name__ == "__main__":
         bot.load_extension("ao_killboard")
         bot.run(args.token)
     sys.exit(0)
+
+if __name__ == "__main__":
+    _entrypoint_main()
 
 # cog logic
 

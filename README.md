@@ -16,7 +16,7 @@ A minimalistic Discord bot for Albion Online's killboard.
 git clone https://github.com/antze-k/ao-killboard-py
 python3 -mpip install -r ao-killboard-py/requirements.txt
 ```
-Change your working directory to `cd ao-killboard-py/src` and run the bot with either of those, depending on your system setup:
+Change your working directory to `cd ao-killboard-py/src/antze` and run the bot with either of those, depending on your system setup:
 * `python3 ao_killboard.py`
 * `python ao_killboard.py`
 * `ao_killboard.py`
