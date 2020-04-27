@@ -11,7 +11,12 @@ A minimalistic Discord bot for Albion Online's killboard.
 * [discord.py](https://discordpy.readthedocs.io/en/latest/index.html)
 * [httpx](https://www.python-httpx.org/)
 
-### Getting the bot
+### Getting the bot via pip
+```
+pip install ao-killboard
+```
+
+### Getting the bot via Git
 ```
 git clone https://github.com/antze-k/ao-killboard-py
 python3 -mpip install -r ao-killboard-py/requirements.txt
