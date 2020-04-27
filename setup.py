@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ao-killboard",
-    version="0.1.1",
+    version="0.1.1.post1",
     author="Antze K.",
     author_email="unresolved-external@singu-lair.com",
     description="A minimalistic Discord bot for Albion Online's killboard.",
@@ -16,23 +16,30 @@ setuptools.setup(
         "Source": "https://github.com/antze-k/ao-killboard-py",
         "Tracker": "https://github.com/antze-k/ao-killboard-py/issues",
     },
-    packages=setuptools.find_namespace_packages("src"),
-    package_dir={"": "src"},
-    entry_points={
-        "console_scripts": [
-            "ao_killboard.py = antze.ao_killboard:_entrypoint_main",
-        ]
-    },
-    zip_safe=True,
-    install_requires=["discord.py","httpx","python-dateutil"],
     classifiers=[
         "Topic :: Utilities",
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
     license="MIT",
     platforms=["any"],
+
+    package_dir={"": "src"},
+    packages=setuptools.find_namespace_packages("src"),
+    namespace_packages=["antze"],
+    zip_safe=True,
+
+    python_requires=">=3.6",
+    install_requires=["discord.py","httpx","python-dateutil"],
+
+    entry_points={
+        "console_scripts": [
+            "ao_killboard.py = antze.ao_killboard:_entrypoint_main",
+        ]
+    },
 )
