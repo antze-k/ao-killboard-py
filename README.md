@@ -5,7 +5,7 @@ A minimalistic Discord bot for Albion Online's killboard.
 ## Getting Started
 
 ### Prerequisites
-* [Python >= 3.6](https://www.python.org/downloads/)
+* [Python >= 3.6](https://www.python.org/downloads/) or [Docker](https://www.docker.com/)
 
 ### Built with:
 * [discord.py](https://discordpy.readthedocs.io/en/latest/index.html)
@@ -14,6 +14,11 @@ A minimalistic Discord bot for Albion Online's killboard.
 ### Getting the bot via pip
 ```
 pip install ao-killboard
+```
+
+### Getting the bot via Docker Hub
+```
+docker pull unresolvedexternal/ao-killboard
 ```
 
 ### Getting the bot via Git
@@ -52,7 +57,7 @@ Paste the following into a file with a name like "start-bot.cmd":
 @echo off
 set AO_KILLBOARD_GUILD=<GUILD-ID>
 set AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>
-set AO_KILLBOARD_GUILD=<123456789>
+set AO_KILLBOARD_CHANNEL=<123456789>
 ao_killboard.py %*
 ```
 Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets.
@@ -62,7 +67,13 @@ Paste the following into a file with a name like "start-bot.sh":
 ```
 AO_KILLBOARD_GUILD=<GUILD-ID>
 AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>
-AO_KILLBOARD_GUILD=<123456789>
+AO_KILLBOARD_CHANNEL=<123456789>
 exec ao_killboard.py "$@"
 ```
 Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. Set the execute bit by running `chmod +x start-bot.sh`.
+
+#### Running the bot using Docker
+```
+docker run --rm -d --env 'AO_KILLBOARD_GUILD=<GUILD-ID>' --env 'AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>' --env 'AO_KILLBOARD_CHANNEL=<123456789>' unresolvedexternal/ao-killboard
+```
+Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. You might also want to add `--name ao-killboard` or any other Docker switches you would prefer.
