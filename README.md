@@ -48,7 +48,13 @@ Set up three parameters (guild, token and channel) either using environment vari
 You can always run `ao_killboard.py --help` to check the available options.
 
 #### Running the bot manually using command line arguments
-```ao_killboard.py --guild <GUILD-ID> --token <DISCORD-TOKEN> --channel <123456789>```
+```
+ao_killboard.py --guild <GUILD-ID> --token <DISCORD-TOKEN> --channel <123456789>
+```
+or, to enable debug logging:
+```
+ao_killboard.py --guild <GUILD-ID> --token <DISCORD-TOKEN> --channel <123456789> --debug
+```
 Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets.
 
 #### Running the bot using environment values and a batch script (Windows)
@@ -60,7 +66,7 @@ set AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>
 set AO_KILLBOARD_CHANNEL=<123456789>
 ao_killboard.py %*
 ```
-Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets.
+Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. To enable debug logging, add `set AO_KILLBOARD_DEBUG=1` before the last line.
 
 #### Running the bot using environment values and a shell script (POSIX-like OS)
 Paste the following into a file with a name like "start-bot.sh":
@@ -70,10 +76,14 @@ AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>
 AO_KILLBOARD_CHANNEL=<123456789>
 exec ao_killboard.py "$@"
 ```
-Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. Set the execute bit by running `chmod +x start-bot.sh`.
+Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. Set the execute bit by running `chmod +x start-bot.sh`. To enable debug logging, add `AO_KILLBOARD_DEBUG=1` before the last line.
 
 #### Running the bot using Docker
 ```
 docker run --rm -d --env 'AO_KILLBOARD_GUILD=<GUILD-ID>' --env 'AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>' --env 'AO_KILLBOARD_CHANNEL=<123456789>' unresolvedexternal/ao-killboard
+```
+or, to enable debug logging:
+```
+docker run --rm -d --env 'AO_KILLBOARD_GUILD=<GUILD-ID>' --env 'AO_KILLBOARD_TOKEN=<DISCORD-TOKEN>' --env 'AO_KILLBOARD_CHANNEL=<123456789>' --env 'AO_KILLBOARD_DEBUG=1' unresolvedexternal/ao-killboard
 ```
 Replace the <PLACEHOLDERS> with their respective values, omitting angle brackets. You might also want to add `--name ao-killboard` or any other Docker switches you would prefer.
