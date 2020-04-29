@@ -8,13 +8,13 @@ import asyncio
 import itertools
 import os
 import sys
-import urllib
 
 # urls
 
 URL_PLAYER = "https://albiononline.com/en/killboard/player/"
 URL_KILL   = "https://albiononline.com/en/killboard/kill/"
 URL_API    = "https://gameinfo.albiononline.com/api/gameinfo/"
+URL_EVENTS = "https://gameinfo.albiononline.com/api/gameinfo/events"
 URL_ITEM   = "https://gameinfo.albiononline.com/api/gameinfo/items/"
 
 # data model
@@ -102,8 +102,8 @@ class Player:
     def url(self):
         return URL_PLAYER + self.id
 
-    def matches(self):
-        return self.guild.id == args.guild
+    def matches(self, guild_id):
+        return self.guild.id == guild_id
 
     def format(self):
         v = f"[{self.name}]({self.url})"
@@ -166,8 +166,8 @@ def format_participant(participant, damage, type):
     )
     return f"• {type}: {s}\n"
 
-def format_event(event):
-    victory = event.killer.matches()
+def format_event(event, guild_id):
+    victory = event.killer.matches(guild_id)
     victory_str = ":muscle: Victory!" if victory else ":thumbsdown: Defeat!"
 
     desc1 = ""
@@ -237,23 +237,23 @@ def format_bytesize(num):
         num /= 1024.0
     return "{:3.1f}YiB".format(num)
 
-async def get_events(url, client, num=51, echo=False, tip_time=None):
+async def get_events(url, client, log, num=51, print_events=False, tip_time=None):
     r = f"{url}?limit={num:d}"
-    if echo: print(f"GET {r}")
+    if log: log.debug(f"GET {r}")
     try:
         r = await client.get(r)
         if r.status_code != 200:
             return None
     except httpx.ConnectTimeout:
-        if echo: print("...", "connect timeout")
+        if log: log.debug("connect timeout")
         raise
     except httpx.ReadTimeout:
-        if echo: print("...", "read timeout")
+        if log: log.debug("read timeout")
         raise
     except httpx.TimeoutException:
-        if echo: print("...", "timeout")
+        if log: log.debug("timeout")
         raise
-    if echo: print("...", format_bytesize(len(r.content)))
+    if log: log.debug("{} received".format(format_bytesize(len(r.content))))
     events = list(
         itertools.takewhile(
             lambda e: tip_time is None or e.time > tip_time,
@@ -263,68 +263,70 @@ async def get_events(url, client, num=51, echo=False, tip_time=None):
         )
     )
     events = list(reversed(events))
-    if echo:
+    if log and print_events:
         for e in events:
-            print(e)
+            log.debug(e)
     return events
 
-# parse args
+# define args
 
-args = (
+ARGS = (
     ("guild", str, "guild ID (as seen in https://albiononline.com/en/killboard/guild/[ID])", "GUILD", None),
     ("token", str, "Discord bot API token", "TOKEN", None),
     ("channel", int, "Discord channel ID", "CHANNEL", None),
     ("interval", int, "Albion Online API request interval", "SEC", 15),
     ("amount", int, "how many API events will be requested", "N", 50),
+    ("debug", bool, "enable debug logging", None, False),
     ("no_default_log", bool, "disable default stdout logging", None, False)
 )
 
-parser = argparse.ArgumentParser(
-    prog="ao_killboard.py",
-    description="Killboard bot for Albion Online",
-    epilog="You can arguments (except for -h and --get) as environment values, "
-           "e.g. --no-default-log as AO_KILLBOARD_NO_DEFAULT_LOG. "
-           "You might want to disable default logging if you use this as a cog "
-           "and prefer to set up Python logging by your own "
-           "(use logging.getLogger(\"ao_killboard\"))."
-)
-parser.add_argument("--get",
-                    help="only request kills once and exit",
-                    action="store_true")
-for arg in args:
-    arg_type      = arg[1]
-    env_key       = "AO_KILLBOARD_"+arg[0].upper()
-    default_value = os.environ.get(env_key, arg[4])
-    if default_value is not None:
-        default_value = arg_type(default_value)
-    if arg[4] is None:
-        arg_help = "(required) "+arg[2]
-    elif arg_type is bool:
-        arg_help = "(optional) "+arg[2]
-    else:
-        arg_help = f"(optional) {arg[2]} (default: {arg[4]})"
-    if arg_type is bool:
-        parser.add_argument(
-            "--{}".format(arg[0].replace("_","-")),
-            help=arg_help,
-            action="store_true",
-            default=default_value
-        )
-    else:
-        parser.add_argument(
-            "--{}".format(arg[0].replace("_","-")),
-            help=arg_help,
-            type=arg_type,
-            metavar=arg[3],
-            default=default_value
-        )
-args = parser.parse_args()
+# init args
 
-# set values
-
-api_url = URL_API
-if not api_url.endswith("/"): api_url += "/"
-events_url = urllib.parse.urljoin(api_url, "events")
+def init_args(skip_argv=False):
+    parser = argparse.ArgumentParser(
+        prog="ao_killboard.py",
+        description="Killboard bot for Albion Online",
+        epilog="You can arguments (except for -h and --get) as environment values, "
+               "e.g. --no-default-log as AO_KILLBOARD_NO_DEFAULT_LOG. "
+               "You might want to disable default logging if you use this as a cog "
+               "and prefer to set up Python logging by your own "
+               "(use logging.getLogger(\"ao_killboard\"))."
+    )
+    parser.add_argument("--get",
+                        help="only request kills once and exit",
+                        action="store_true")
+    for arg in ARGS:
+        arg_type      = arg[1]
+        env_key       = "AO_KILLBOARD_"+arg[0].upper()
+        default_value = os.environ.get(env_key, arg[4])
+        if default_value is not None:
+            default_value = arg_type(default_value)
+        if arg[4] is None:
+            arg_help = "(required) "+arg[2]
+        elif arg_type is bool:
+            arg_help = "(optional) "+arg[2]
+        else:
+            arg_help = f"(optional) {arg[2]} (default: {arg[4]})"
+        if arg_type is bool:
+            parser.add_argument(
+                "--{}".format(arg[0].replace("_","-")),
+                help=arg_help,
+                action="store_true",
+                default=default_value
+            )
+        else:
+            parser.add_argument(
+                "--{}".format(arg[0].replace("_","-")),
+                help=arg_help,
+                type=arg_type,
+                metavar=arg[3],
+                default=default_value
+            )
+    if skip_argv:
+        args = parser.parse_args([])
+    else:
+        args = parser.parse_args()
+    return args
 
 # validate
 
@@ -347,11 +349,24 @@ def _entrypoint_main():
                 asyncio.WindowsSelectorEventLoopPolicy()
             )
 
+    args = init_args()
+
     if args.get:
         async def get_events_once():
             try:
+                import logging
+                log = logging.getLogger("ao_killboard")
+                log_formatter = logging.Formatter(
+                    "%(message)s",
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                log_handler = logging.StreamHandler(stream=sys.stdout)
+                log_handler.setFormatter(log_formatter)
+                log.addHandler(log_handler)
+                log.setLevel(logging.DEBUG)
                 async with httpx.AsyncClient() as client:
-                    await get_events(events_url, client, num=10, echo=True)
+                    await get_events(URL_EVENTS, client, log,
+                                     num=10, print_events=True)
             except httpx.TimeoutException:
                 pass
         asyncio.run(get_events_once())
@@ -362,6 +377,8 @@ def _entrypoint_main():
             assert_not_none(args.channel, "CHANNEL")
         except ValueError as exc:
             parser.error(exc)
+
+        os.environ["AO_KILLBOARD_RETAIN_ARGV"] = "1"
 
         import discord.ext.commands
         # no reasonable command prefix
@@ -376,21 +393,14 @@ if __name__ == "__main__":
 # cog logic
 
 import discord.ext.commands
-
 import logging
 
 instance = None
-log = logging.getLogger("ao_killboard")
-
-if not args.no_default_log:
-    log_formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        "%Y-%m-%d %H:%M:%S"
-    )
-    log_handler = logging.StreamHandler(stream=sys.stdout)
-    log_handler.setFormatter(log_formatter)
-    log.addHandler(log_handler)
-    log.setLevel(logging.INFO)
+log = None
+if os.environ.get("AO_KILLBOARD_RETAIN_ARGV", False):
+    cog_args = init_args()
+else:
+    cog_args = init_args(skip_argv=True)
 
 class AOKillboardCog(discord.ext.commands.Cog):
     def __init__(self, bot):
@@ -418,33 +428,54 @@ class AOKillboardCog(discord.ext.commands.Cog):
             log.info("inactive")
 
     async def process(self, client):
+        ch_not_found_timeout = 300
         retry_base = .75
         retry = retry_base
         tip_time = None
         while True:
             try:
-                events = await get_events(events_url, client,
+                events = await get_events(URL_EVENTS, client, log,
                                           num=50,
                                           tip_time=tip_time)
                 if events:
                     if tip_time is None:
                         # don't announce anything on first successful request
                         tip_time = events[-1].time
+                        log.debug("first successful request, "
+                                  "will not announce anything")
                     else:
                         tip_time = events[-1].time
                         channel = next(
                             (channel
                              for channel in self.bot.get_all_channels()
-                             if channel.id == args.channel),
+                             if channel.id == cog_args.channel),
                             None
                         )
                         if channel is None:
-                            log.error(f"channel {args.channel} not found")
+                            log.error(f"channel {cog_args.channel} not found")
+                            log.debug(f"waiting for {ch_not_found_timeout}s")
+                            await asyncio.sleep(ch_not_found_timeout)
+                            continue
                         else:
-                            await self.filter_announce(channel, events)
+                            matching_events = self.filter(events)
+                            log.debug(
+                                "events: new = {}, matching = {}".format(
+                                    len(events),
+                                    len(matching_events)
+                                )
+                            )
+                            try:
+                                await self.announce(channel, matching_events, log)
+                            except discord.HTTPException:
+                                exc_info = sys.exc_info()
+                                log.error("{}: {}".format(exc_info[0].__name__,
+                                                          exc_info[1]))
+                else:
+                    log.debug("events: new = 0, matching = 0")
             except httpx.TimeoutException:
                 await asyncio.sleep(retry)
-                retry = min(retry + retry_base, args.interval)
+                log.debug(f"waiting for {retry}s")
+                retry = min(retry + retry_base, cog_args.interval)
                 continue
             except asyncio.CancelledError:
                 raise
@@ -453,20 +484,46 @@ class AOKillboardCog(discord.ext.commands.Cog):
                 log.error("{}: {}".format(exc_info[0].__name__,
                                           exc_info[1]))
             retry = retry_base
-            await asyncio.sleep(args.interval)
+            log.debug(f"waiting for {cog_args.interval}s")
+            await asyncio.sleep(cog_args.interval)
 
-    async def filter_announce(self, channel, events):
+    def filter(self, events):
+        return [e for e in events if e.fame > 0 and self.matches(e)]
+
+    async def announce(self, channel, events, log):
+        if not events:
+            return
+        log.debug("events: sending to channel {}".format(channel.id))
         for e in events:
-            if e.fame > 0 and self.matches(e):
-                embed = discord.Embed.from_dict(format_event(e))
-                await channel.send(embed=embed)
+            embed = discord.Embed.from_dict(format_event(e, cog_args.guild))
+            await channel.send(embed=embed)
 
     def matches(self, event):
-        return event.killer.matches() or event.victim.matches()
+        return (
+            event.killer.matches(cog_args.guild) or
+            event.victim.matches(cog_args.guild)
+        )
 
 def setup(bot):
-    assert_not_none(args.guild, "GUILD")
-    assert_not_none(args.channel, "CHANNEL")
+    # initial logging setup
+
+    global log
+    if log is None:
+        log = logging.getLogger("ao_killboard")
+        if not cog_args.no_default_log:
+            log_formatter = logging.Formatter(
+                "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                "%Y-%m-%d %H:%M:%S"
+            )
+            log_handler = logging.StreamHandler(stream=sys.stdout)
+            log_handler.setFormatter(log_formatter)
+            log.addHandler(log_handler)
+    log.setLevel(logging.DEBUG if cog_args.debug else logging.INFO)
+
+    # launch cog
+
+    assert_not_none(cog_args.guild, "GUILD")
+    assert_not_none(cog_args.channel, "CHANNEL")
     bot.add_cog(AOKillboardCog(bot))    
     global instance
     instance = bot.get_cog("AOKillboardCog")
