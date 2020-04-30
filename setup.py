@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ao-killboard",
-    version="0.1.1.post1",
+    version="0.1.2",
     author="Antze K.",
     author_email="unresolved-external@singu-lair.com",
     description="A minimalistic Discord bot for Albion Online's killboard.",
